@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>J.A.R.V.I.S. · voice assistant</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at 20% 20%, #0a0f1e, #03050b);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* main glass card – mobile first */
+    .jarvis-card {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(8, 20, 36, 0.75);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: 56px;
+      border: 1px solid rgba(0, 255, 255, 0.25);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 255, 255, 0.1) inset, 0 0 30px rgba(0, 180, 255, 0.3);
+      padding: 24px 20px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: box-shadow 0.2s;
+    }
+
+    /* title + arc reactor */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .arc-reactor {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #b0f0ff, #00a6ff, #002a55);
+      box-shadow: 0 0 18px #00c8ff, 0 0 35px #0077ff, inset 0 0 8px #ffffff;
+      position: relative;
+      animation: pulse-glow 2s infinite alternate;
+    }
+
+    .arc-reactor::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 20px #0af, 0 0 40px #0af;
+      opacity: 0.9;
+    }
+
+    @keyframes pulse-glow {
+      0% { box-shadow: 0 0 12px #00c8ff, 0 0 25px #0077ff, inset 0 0 8px #fff; }
+      100% { box-shadow: 0 0 25px #00e0ff, 0 0 55px #2a9dff, inset 0 0 12px #fff; }
+    }
+
+    .title {
+      font-size: 1.9rem;
+      font-weight: 300;
+      letter-spacing: 6px;
+      color: #b8ecff;
+      text-shadow: 0 0 8px #0af, 0 0 20px #0af;
+      margin-left: 4px;
+    }
+
+    /* status indicator */
+    .status-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(0, 30, 60, 0.7);
+      border: 1px solid #00a6ff88;
+      border-radius: 60px;
+      padding: 8px 24px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      color: #9bd9ff;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      backdrop-filter: blur(5px);
+    }
+
+    .status-led {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #0f0;
+      box-shadow: 0 0 12px #0f0;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .status-led.listening {
+      background: #f80;
+      box-shadow: 0 0 16px #f80;
+      animation: blink 1s infinite;
+    }
+
+    .status-led.speaking {
+      background: #0af;
+      box-shadow: 0 0 18px #0af;
+      animation: blink 0.7s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* animated visualizer (purely aesthetic) */
+    .wave-box {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      height: 60px;
+      margin-bottom: 18px;
+      opacity: 0.8;
+    }
+
+    .wave-bar {
+      width: 6px;
+      height: 22px;
+      background: #0af;
+      border-radius: 8px;
+      box-shadow: 0 0 12px #0af;
+      transition: height 0.1s;
+    }
+
+    .wave-bar.active {
+      animation: wave-bounce 1s infinite alternate ease-in-out;
+    }
+
+    @keyframes wave-bounce {
+      0% { height: 16px; opacity: 0.6; }
+      100% { height: 46px; opacity: 1; }
+    }
+
+    /* command/response display */
+    .display-panel {
+      width: 100%;
+      background: rgba(0, 15, 30, 0.8);
+      border-radius: 36px;
+      border: 1px solid #0077ff66;
+      padding: 22px 18px;
+      margin-bottom: 28px;
+      box-shadow: inset 0 0 25px #00000066, 0 0 18px #0077ff33;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .user-query {
+      color: #a0d0ff;
+      font-size: 1.05rem;
+      text-align: right;
+      margin-bottom: 12px;
+      word-break: break-word;
+      opacity: 0.9;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .user-query i {
+      font-style: normal;
+      background: #0a2a4a;
+      padding: 4px 10px;
+      border-radius: 40px;
+      font-size: 0.75rem;
+      color: #7fb9ff;
+    }
+
+    .jarvis-response {
+      color: #e0f0ff;
+      font-size: 1.2rem;
+      font-weight: 400;
+      line-height: 1.45;
+      text-align: left;
+      word-break: break-word;
+      text-shadow: 0 0 12px #0af;
+      min-height: 3rem;
+    }
+
+    .hint-text {
+      font-size: 0.75rem;
+      color: #6b9fcc;
+      text-align: center;
+      margin-top: 8px;
+      letter-spacing: 1px;
+    }
+
+    /* controls */
+    .button-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 22px;
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    .mic-button {
+      background: radial-gradient(circle at 30% 30%, #1a6fb0, #0a2a4a);
+      border: 2px solid #00a6ff;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.8rem;
+      color: #d0f0ff;
+      box-shadow: 0 0 25px #0077ff, 0 10px 20px #00000055, inset 0 0 15px #00aaff55;
+      cursor: pointer;
+      transition: all 0.1s ease;
+      touch-action: manipulation;
+      outline: none;
+    }
+
+    .mic-button:active {
+      transform: scale(0.94);
+      box-shadow: 0 0 35px #00aaff, inset 0 0 25px #00aaff;
+    }
+
+    .mic-button.listening {
+      background: radial-gradient(circle at 30% 30%, #b35e00, #4a1e00);
+      border-color: #ffaa00;
+      box-shadow: 0 0 40px #ffaa00, inset 0 0 20px #ffaa00;
+      color: #fff5e0;
+    }
+
+    .stop-button {
+      background: rgba(255, 70, 70, 0.15);
+      border: 1px solid #ff5e5e;
+      color: #ffb0b0;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 15px #ff000055;
+      cursor: pointer;
+      transition: all 0.1s;
+      touch-action: manipulation;
+      outline: none;
+    }
+
+    .stop-button:active {
+      background: rgba(255, 70, 70, 0.4);
+      transform: scale(0.92);
+    }
+
+    .reset-button {
+      background: rgba(100, 180, 255, 0.1);
+      border: 1px solid #4d9eff;
+      color: #b0e0ff;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 15px #0077ff33;
+      cursor: pointer;
+      transition: all 0.1s;
+      touch-action: manipulation;
+      outline: none;
+    }
+
+    .reset-button:active {
+      background: rgba(100, 180, 255, 0.3);
+      transform: scale(0.92);
+    }
+
+    .footer {
+      margin-top: 24px;
+      font-size: 0.7rem;
+      color: #2f6080;
+      letter-spacing: 2px;
+      text-align: center;
+    }
+
+    /* disable selection / callout */
+    * {
+      -webkit-touch-callout: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="jarvis-card">
+    <!-- header with reactor -->
+    <div class="header">
+      <div class="arc-reactor"></div>
+      <div class="title">J.A.R.V.I.S</div>
+    </div>
+
+    <!-- status -->
+    <div class="status-badge">
+      <span class="status-led" id="statusLed"></span>
+      <span id="statusText">STANDBY</span>
+    </div>
+
+    <!-- wave visualizer (decorative) -->
+    <div class="wave-box" id="waveBox">
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+    </div>
+
+    <!-- conversation display -->
+    <div class="display-panel">
+      <div class="user-query" id="userQuery">
+        <span>...</span>
+        <i>you</i>
+      </div>
+      <div class="jarvis-response" id="jarvisResponse">
+        How can I help you, sir?
+      </div>
+    </div>
+
+    <!-- buttons -->
+    <div class="button-group">
+      <button class="mic-button" id="micBtn" aria-label="Speak to Jarvis">
+        <span>🎤</span>
+      </button>
+      <button class="stop-button" id="stopBtn" aria-label="Stop speaking">
+        <span>⏹</span>
+      </button>
+      <button class="reset-button" id="resetBtn" aria-label="Reset conversation">
+        <span>⟲</span>
+      </button>
+    </div>
+
+    <div class="footer">
+      <span>VOICE INTERFACE</span>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- DOM refs ----------
+      const micBtn = document.getElementById('micBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const userQueryDiv = document.getElementById('userQuery');
+      const jarvisResponseDiv = document.getElementById('jarvisResponse');
+      const statusLed = document.getElementById('statusLed');
+      const statusText = document.getElementById('statusText');
+      const waveBars = document.querySelectorAll('.wave-bar');
+
+      // ---------- Speech API detection ----------
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const speechSynthesis = window.speechSynthesis;
+
+      // ---------- State ----------
+      let recognition = null;
+      let isListening = false;
+      let isSpeaking = false;
+      let userQueryText = '';          // holds the latest transcript
+      let jarvisReplyText = '';        // holds the latest assistant response
+      let currentUtterance = null;     // keep reference to cancel
+      let listeningTimeout = null;
+
+      // ---------- Initial UI status ----------
+      function setStatus(state) {
+        // state: 'standby', 'listening', 'speaking'
+        statusLed.className = 'status-led'; // reset
+        if (state === 'listening') {
+          statusLed.classList.add('listening');
+          statusText.textContent = 'LISTENING';
+          micBtn.classList.add('listening');
+          // animate wave bars
+          waveBars.forEach(bar => bar.classList.add('active'));
+        } else if (state === 'speaking') {
+          statusLed.classList.add('speaking');
+          statusText.textContent = 'SPEAKING';
+          micBtn.classList.remove('listening');
+          waveBars.forEach(bar => bar.classList.add('active'));
+        } else {
+          // standby
+          statusLed.style.background = '#0f0';
+          statusLed.style.boxShadow = '0 0 12px #0f0';
+          statusText.textContent = 'STANDBY';
+          micBtn.classList.remove('listening');
+          waveBars.forEach(bar => bar.classList.remove('active'));
+        }
+      }
+
+      // update the displayed user query (right aligned)
+      function updateUserQuery(text) {
+        if (!text || text.trim() === '') {
+          userQueryDiv.innerHTML = `<span>...</span><i>you</i>`;
+        } else {
+          userQueryDiv.innerHTML = `<span>${escapeHTML(text)}</span><i>you</i>`;
+        }
+        userQueryText = text || '';
+      }
+
+      // update jarvis response area
+      function updateJarvisResponse(text) {
+        jarvisResponseDiv.textContent = text || '';
+        jarvisReplyText = text || '';
+      }
+
+      // simple escape for HTML
+      function escapeHTML(str) {
+        return String(str).replace(/[&<>"]/g, function(m) {
+          if (m === '&') return '&amp;';
+          if (m === '<') return '&lt;';
+          if (m === '>') return '&gt;';
+          if (m === '"') return '&quot;';
+          return m;
+        });
+      }
+
+      // ---------- Stop any ongoing speech ----------
+      function stopSpeaking() {
+        if (speechSynthesis.speaking) {
+          speechSynthesis.cancel();
+        }
+        if (currentUtterance) {
+          currentUtterance = null;
+        }
+        isSpeaking = false;
+        // if not listening, set standby
+        if (!isListening) setStatus('standby');
+      }
+
+      // ---------- Speak response (with Jarvis voice style) ----------
+      function speakResponse(text) {
+        if (!text || text.trim() === '') {
+          // if there's nothing to say, just set standby
+          if (!isListening) setStatus('standby');
+          return;
+        }
+
+        // cancel any ongoing speech first
+        stopSpeaking();
+
+        // update UI
+        updateJarvisResponse(text);
+        setStatus('speaking');
+        isSpeaking = true;
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        currentUtterance = utterance;
+
+        // try to pick a male/british voice for Jarvis vibe
+        const voices = speechSynthesis.getVoices();
+        let preferredVoice = voices.find(v => v.lang.includes('en-GB') && v.name.toLowerCase().includes('male')) ||
+                             voices.find(v => v.lang.includes('en-GB')) ||
+                             voices.find(v => v.lang.includes('en')) ||
+                             voices[0];
+        if (preferredVoice) utterance.voice = preferredVoice;
+
+        utterance.rate = 0.92;
+        utterance.pitch = 0.82;      // slightly lower pitch for Jarvis feel
+        utterance.volume = 1.0;
+        utterance.lang = 'en-GB';
+
+        utterance.onend = function() {
+          isSpeaking = false;
+          currentUtterance = null;
+          if (!isListening) setStatus('standby');
+          // if listening, keep status listening
+          else setStatus('listening');
+        };
+
+        utterance.onerror = function(e) {
+          console.warn('Speech synthesis error:', e);
+          isSpeaking = false;
+          currentUtterance = null;
+          if (!isListening) setStatus('standby');
+          else setStatus('listening');
+        };
+
+        speechSynthesis.speak(utterance);
+      }
+
+      // ---------- Process recognized command ----------
+      function processCommand(transcript) {
+        const lower = transcript.toLowerCase().trim();
+        let reply = '';
+
+        // built-in Jarvis-style responses
+        if (lower.includes('hello') || lower.includes('hi jarvis') || lower.includes('hey jarvis')) {
+          reply = 'Hello sir. All systems are operational. How may I assist you?';
+        } else if (lower.includes('time')) {
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          reply = `The current time is ${timeStr}, sir.`;
+        } else if (lower.includes('date') || lower.includes('day')) {
+          const now = new Date();
+          const dateStr = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          reply = `Today is ${dateStr}.`;
+        } else if (lower.includes('your name') || lower.includes('who are you')) {
+          reply = 'I am J.A.R.V.I.S., your personal voice assistant. At your service.';
+        } else if (lower.includes('weather')) {
+          reply = 'I am not connected to a weather service at the moment, sir. But it looks like a fine day for science.';
+        } else if (lower.includes('thank you') || lower.includes('thanks')) {
+          reply = 'You are most welcome, sir.';
+        } else if (lower.includes('joke')) {
+          const jokes = [
+            'Why did the AI cross the road? To optimize the other side.',
+            'I would tell you a joke about UDP, but you might not get it.',
+            'Why do programmers prefer dark mode? Because light attracts bugs.',
+            'I told my neural network a joke. It didn\'t laugh, but it did overfit.'
+          ];
+          reply = jokes[Math.floor(Math.random() * jokes.length)];
+        } else if (lower.includes('stop') || lower.includes('be quiet') || lower.includes('silence')) {
+          // stop speaking immediately
+          stopSpeaking();
+          updateJarvisResponse('As you wish, sir.');
+          if (!isListening) setStatus('standby');
+          return;
+        } else if (lower.includes('jarvis')) {
+          reply = 'Yes sir, I am here. What do you need?';
+        } else {
+          // default: friendly echo
+          reply = `I heard you say: "${transcript}". I'm still learning, but I'm here for you.`;
+        }
+
+        // update and speak
+        updateJarvisResponse(reply);
+        speakResponse(reply);
+      }
+
+      // ---------- Start recognition ----------
+      function startListening() {
+        if (!recognition) {
+          alert('Speech recognition is not supported in this browser. Please use Chrome or Safari (mobile).');
+          return;
+        }
+
+        // if already listening, do nothing
+        if (isListening) return;
+
+        // stop any speaking
+        stopSpeaking();
+
+        // reset previous query display
+        updateUserQuery('');
+        // set a small interim placeholder
+        updateJarvisResponse('Listening...');
+
+        // set status
+        setStatus('listening');
+        isListening = true;
+
+        // clear any previous timeout
+        if (listeningTimeout) clearTimeout(listeningTimeout);
+
+        // start recognition
+        try {
+          recognition.start();
+        } catch (e) {
+          // if recognition is already started, we ignore
+          if (e.name === 'InvalidStateError') {
+            console.warn('Recognition already active.');
+          } else {
+            console.error('Recognition start error:', e);
+            isListening = false;
+            setStatus('standby');
+          }
+        }
+      }
+
+      // ---------- Stop listening (manual or auto) ----------
+      function stopListening(abort = false) {
+        if (!recognition) return;
+        if (listeningTimeout) {
+          clearTimeout(listeningTimeout);
+          listeningTimeout = null;
+        }
+        if (isListening) {
+          try {
+            if (abort) {
+              recognition.abort();
+            } else {
+              recognition.stop();
+            }
+          } catch (e) {
+            console.warn('Stop error', e);
+          }
+          isListening = false;
+          // if not speaking, set standby
+          if (!isSpeaking) setStatus('standby');
+        }
+      }
+
+      // ---------- Init recognition ----------
+      function initRecognition() {
+        if (!SpeechRecognition) {
+          micBtn.disabled = true;
+          micBtn.style.opacity = 0.5;
+          statusText.textContent = 'UNSUPPORTED';
+          statusLed.style.background = '#f44';
+          statusLed.style.boxShadow = '0 0 12px #f44';
+          return;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'en-GB';
+        recognition.maxAlternatives = 1;
+
+        // --- recognition event handlers ---
+        recognition.onstart = function() {
+          isListening = true;
+          setStatus('listening');
+          // auto stop after 8 seconds of silence? we use a timeout fallback
+          if (listeningTimeout) clearTimeout(listeningTimeout);
+          listeningTimeout = setTimeout(() => {
+            if (isListening) {
+              console.log('Auto stop due to timeout');
+              stopListening(false);
+            }
+          }, 10000); // 10 seconds max listening
+        };
+
+        recognition.onresult = function(event) {
+          // clear timeout b
